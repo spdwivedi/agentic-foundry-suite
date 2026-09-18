@@ -10,13 +10,13 @@ This document presents the **Data Flow Diagrams (DFD Level 0 and Level 1)** and 
 
 ```mermaid
 flowchart TD
-    User([System Operator / Engineer]) -->|CLI Commands & Flags| Core[[Agentic Foundry Suite]]
-    Core -->|State Checkpoints| DB[(SQLite Store: agent_state.db)]
-    DB -->|Restored State Snapshots| Core
-    Core -->|Prompts & Schema Requests| Models[(Gemini API & External Tools)]
-    Models -->|Responses & Telemetry| Core
-    Core -->|Formatted Logs| Out[/Execution Transcripts & Reports/]
-    Out -->|Inspection & Audit| User
+    User([System Operator / Engineer]) -->|CLI Commands & Parameters| Core[[Agentic Foundry Suite]]
+    
+    Core <-->|Save & Restore Checkpoints| DB[(SQLite Store: agent_state.db)]
+    Core <-->|Prompts & Tool Telemetry| Models[(Gemini API & External Tools)]
+    Core -->|Execution Transcripts & Reports| Out[/Execution Transcripts & Reports/]
+    
+    Out -->|Audit & Verification| User
 ```
 
 ---
