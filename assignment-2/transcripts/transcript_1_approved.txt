@@ -1,0 +1,132 @@
+================================================================================
+AGENTIC FOUNDRY SUITE: ASSIGNMENT 2 MULTI-AGENT REVIEW (PASS)
+================================================================================
+Task: Design and review an asynchronous FastAPI Token-Bucket Rate Limiter middleware.
+Scenario Mode: pass
+Gate Verdict: APPROVED
+--------------------------------------------------------------------------------
+TELEMETRY SUMMARY:
+  Total LLM Calls:       2
+  Prompt Tokens:         1503
+  Completion Tokens:     1244
+  Total Tokens Consumed: 2747
+--------------------------------------------------------------------------------
+CRITERIA SCORECARD:
+  - concurrency_safety                 : PASSED [OK]
+  - edge_case_resilience               : PASSED [OK]
+  - test_completeness                  : PASSED [OK]
+  - type_annotations_and_docstrings    : PASSED [OK]
+--------------------------------------------------------------------------------
+REVIEW NOTES:
+The implementation correctly utilizes asyncio.Lock for per-bucket concurrency control, preventing race conditions. Edge cases regarding capacity and refill rates are handled via constructor validation, and time.monotonic() is correctly employed to mitigate clock drift. The provided test suite covers both successful consumption and rate-limit enforcement. Type annotations are present and accurate.
+--------------------------------------------------------------------------------
+AGENT A (WORKER) ARTIFACT SUBMISSION:
+--------------------------------------------------------------------------------
+To implement a production-grade Token Bucket rate limiter in FastAPI, we must ensure that the state (tokens and last refill time) is managed atomically. Using `asyncio.Lock` per key prevents race conditions during the "read-modify-write" cycle of token consumption.
+
+### Implementation
+
+```python
+import asyncio
+import time
+from typing import Dict, Optional, Callable
+from fastapi import Request, Response, status
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class TokenBucket:
+    def __init__(self, capacity: float, refill_rate: float):
+        if capacity <= 0 or refill_rate <= 0:
+            raise ValueError("Capacity and refill_rate must be positive.")
+        self.capacity = float(capacity)
+        self.refill_rate = float(refill_rate)
+        self.tokens = float(capacity)
+        self.last_refill = time.monotonic()
+        self.lock = asyncio.Lock()
+
+    async def consume(self, amount: float = 1.0) -> bool:
+        async with self.lock:
+            now = time.monotonic()
+            elapsed = now - self.last_refill
+            
+            # Replenish tokens
+            self.tokens = min(self.capacity, self.tokens + elapsed * self.refill_rate)
+            self.last_refill = now
+
+            if self.tokens >= amount:
+                self.tokens -= amount
+                return True
+            return False
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, capacity: float = 10.0, refill_rate: float = 1.0):
+        super().__init__(app)
+        self.buckets: Dict[str, TokenBucket] = {}
+        self.capacity = capacity
+        self.refill_rate = refill_rate
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Use client IP as the unique key
+        client_ip = request.client.host if request.client else "unknown"
+        
+        if client_ip not in self.buckets:
+            self.buckets[client_ip] = TokenBucket(self.capacity, self.refill_rate)
+        
+        bucket = self.buckets[client_ip]
+        if not await bucket.consume(1.0):
+            return Response(
+                content="Too Many Requests", 
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+        
+        return await call_next(request)
+```
+
+### Unit Tests
+
+These tests use `pytest` and `httpx` to verify the rate limiting logic.
+
+```python
+import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+from .middleware import RateLimitMiddleware # Assuming the code above is in middleware.py
+
+@pytest.fixture
+def app():
+    app = FastAPI()
+    app.add_middleware(RateLimitMiddleware, capacity=2, refill_rate=100) # High refill for testing
+    @app.get("/")
+    async def root():
+        return {"message": "ok"}
+    return app
+
+@pytest.mark.asyncio
+async def test_rate_limit_success(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # First two requests should pass
+        resp1 = await client.get("/")
+        resp2 = await client.get("/")
+        assert resp1.status_code == 200
+        assert resp2.status_code == 200
+
+@pytest.mark.asyncio
+async def test_rate_limit_exceeded(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # Exhaust capacity
+        await client.get("/")
+        await client.get("/")
+        
+        # Third request should fail
+        resp3 = await client.get("/")
+        assert resp3.status_code == 429
+```
+
+### Key Engineering Decisions:
+1.  **`time.monotonic()`**: Used instead of `time.time()` to ensure the rate limiter is immune to system clock adjustments (NTP syncs), which is critical for distributed systems.
+2.  **`asyncio.Lock`**: By placing the lock inside the `TokenBucket` instance, we ensure that concurrent requests from the *same* client are serialized, while requests from *different* clients remain non-blocking relative to each other.
+3.  **Memory Management**: In a production environment with millions of unique IPs, you should replace the `self.buckets` dictionary with an `LRUCache` or a Redis-backed implementation to prevent memory exhaustion.
+4.  **Granularity**: The `refill_rate` is calculated per second, providing a smooth token replenishment flow.
+
+================================================================================
+END OF TRANSCRIPT
+================================================================================

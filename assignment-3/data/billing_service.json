@@ -1,0 +1,20 @@
+{
+  "service_name": "billing-service",
+  "version": "1.9.0",
+  "network": {
+    "host": "0.0.0.0",
+    "port": 8082,
+    "protocol": "gRPC"
+  },
+  "security": {
+    "tls_enabled": true,
+    "compliance": ["PCI_DSS_V4", "SOC2_TYPE_II"],
+    "encryption": "AES_256_GCM"
+  },
+  "rate_limiting": {
+    "enabled": true,
+    "requests_per_second": 100,
+    "burst_capacity": 150,
+    "algorithm": "leaky_bucket"
+  }
+}

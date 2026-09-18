@@ -1,0 +1,20 @@
+{
+  "service_name": "auth-service",
+  "version": "2.4.1",
+  "network": {
+    "host": "0.0.0.0",
+    "port": 8081,
+    "protocol": "HTTP/2"
+  },
+  "security": {
+    "tls_enabled": true,
+    "compliance": ["SOC2_TYPE_II", "GDPR", "ISO_27001"],
+    "auth_type": "OAuth2_JWT"
+  },
+  "rate_limiting": {
+    "enabled": true,
+    "requests_per_second": 250,
+    "burst_capacity": 500,
+    "algorithm": "token_bucket"
+  }
+}

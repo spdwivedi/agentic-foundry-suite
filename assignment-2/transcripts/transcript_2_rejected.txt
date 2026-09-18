@@ -1,0 +1,81 @@
+================================================================================
+AGENTIC FOUNDRY SUITE: ASSIGNMENT 2 MULTI-AGENT REVIEW (FAIL)
+================================================================================
+Task: Design and review an asynchronous FastAPI Token-Bucket Rate Limiter middleware.
+Scenario Mode: fail
+Gate Verdict: REJECTED
+--------------------------------------------------------------------------------
+TELEMETRY SUMMARY:
+  Total LLM Calls:       2
+  Prompt Tokens:         814
+  Completion Tokens:     759
+  Total Tokens Consumed: 1573
+--------------------------------------------------------------------------------
+CRITERIA SCORECARD:
+  - concurrency_safety                 : FAILED [X]
+  - edge_case_resilience               : FAILED [X]
+  - test_completeness                  : FAILED [X]
+  - type_annotations_and_docstrings    : FAILED [X]
+--------------------------------------------------------------------------------
+ITEMIZED REJECTION REASONS:
+  1. Missing asyncio.Lock: The implementation is vulnerable to race conditions as multiple concurrent requests can read and modify shared state simultaneously.
+  2. Clock Drift Vulnerability: Uses time.time() instead of time.monotonic(), making the rate limiter susceptible to system clock adjustments.
+  3. Lack of Input Validation: No checks for non-positive capacity or refill rates in the constructor.
+  4. Missing Test Suite: No pytest implementation provided.
+  5. Incomplete Documentation: Missing docstrings for the class and dispatch method, and incomplete type annotations for the constructor parameters.
+--------------------------------------------------------------------------------
+REVIEW NOTES:
+The submission fails on all four mandatory criteria. The lack of concurrency control makes the rate limiter non-functional in a production FastAPI environment. Furthermore, the use of time.time() is a security anti-pattern for duration calculations. The absence of input validation and unit tests renders the code unsuitable for deployment.
+--------------------------------------------------------------------------------
+AGENT A (WORKER) ARTIFACT SUBMISSION:
+--------------------------------------------------------------------------------
+Here is the preliminary draft for the Token-Bucket Rate Limiter middleware. 
+
+**Note:** As requested, this implementation lacks `asyncio.Lock` and concurrency safeguards, meaning it is susceptible to race conditions in high-traffic environments.
+
+```python
+import time
+from fastapi import Request, Response, status
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class TokenBucketMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, capacity: int, refill_rate: float):
+        super().__init__(app)
+        self.capacity = capacity
+        self.refill_rate = refill_rate  # tokens per second
+        self.tokens = capacity
+        self.last_refill = time.time()
+
+    async def dispatch(self, request: Request, call_next):
+        now = time.time()
+        
+        # Calculate tokens to add based on time passed
+        elapsed = now - self.last_refill
+        self.tokens = min(self.capacity, self.tokens + (elapsed * self.refill_rate))
+        self.last_refill = now
+
+        # Check if bucket has enough tokens
+        if self.tokens < 1:
+            return Response(
+                content="Rate limit exceeded", 
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        # Consume token
+        self.tokens -= 1
+        
+        response = await call_next(request)
+        return response
+
+# Usage example:
+# app.add_middleware(TokenBucketMiddleware, capacity=10, refill_rate=1.0)
+```
+
+### Implementation Notes:
+*   **Race Conditions:** Because there is no `asyncio.Lock` wrapping the `self.tokens` update logic, multiple concurrent requests hitting the middleware simultaneously will read and write to `self.tokens` and `self.last_refill` without synchronization. This will likely lead to inaccurate token counts.
+*   **State Management:** The state is stored in-memory within the middleware instance. This will not persist across multiple worker processes (e.g., if using Gunicorn/Uvicorn with multiple workers).
+*   **Testing:** No unit tests have been implemented for this draft.
+
+================================================================================
+END OF TRANSCRIPT
+================================================================================

@@ -1,0 +1,20 @@
+{
+  "service_name": "event-stream-service",
+  "version": "4.0.0",
+  "network": {
+    "host": "0.0.0.0",
+    "port": 9092,
+    "protocol": "Kafka_TCP"
+  },
+  "security": {
+    "tls_enabled": true,
+    "compliance": ["ISO_27001", "SOC2_TYPE_II"],
+    "sasl_mechanism": "SCRAM-SHA-512"
+  },
+  "rate_limiting": {
+    "enabled": true,
+    "requests_per_second": 50000,
+    "burst_capacity": 75000,
+    "algorithm": "fixed_window"
+  }
+}
