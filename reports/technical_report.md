@@ -28,19 +28,27 @@ The LangGraph architecture avoids all three through its state transition model:
    > *"The system_metrics_api returned a 504 Gateway Timeout... I will use doc_lookup to retrieve architectural specifications... followed by latency_math_engine to model performance under 100k req/sec load."*
 4. **Synthesis**: The agent delivers an authoritative synthesis, annotating that empirical telemetry was replaced by queuing theory models and verified architectural specs.
 
-### 1.3 Mathematical Queuing Model in `latency_math_engine`
-The latency engine models single-core vs multi-core capacity under M/M/1 queuing approximation:
+### 1.3 Queuing Latency Estimation Model
+To evaluate latency behavior under load, we model system response time using an aggregate $M/M/1$ queuing heuristic scaled across available processing cores.
+
+System utilization ($\rho$) across parallel cores is defined as:
 $$\rho = \min\left(\frac{\lambda}{c \cdot \mu},\, 0.98\right)$$
+
 Where:
-- $\lambda = 100{,}000 \text{ req/sec}$ (Target throughput)
-- $c = 8 \text{ cores}$
-- $\mu = 25{,}000 \text{ req/sec/core}$ (Core processing capacity)
-- $\rho = \frac{100{,}000}{8 \cdot 25{,}000} = 0.50 \text{ (50\% Core Utilization)}$
 
-Projected tail latency ($p99$) is modeled as:
-$$p99 = \text{base\_latency} + \left(\frac{\rho}{1 - \rho}\right) \cdot \delta = 0.35\text{ ms} + \left(\frac{0.50}{1 - 0.50}\right) \cdot 0.12\text{ ms} = 0.47\text{ ms}$$
+- $\lambda = 100{,}000\text{ req/s}$ (Target system throughput)
+- $c = 8$ (Allocated CPU cores)
+- $\mu = 25{,}000\text{ req/s/core}$ (Nominal single-core processing capacity)
+- $\rho = \frac{100{,}000}{8 \times 25{,}000} = 0.50$ ($50\%$ aggregate core utilization)
 
-Because utilization ($\rho$) remains at 50% on 8 cores, KeyDB operates in the nominal region with minimal queue delay. Redis Cluster, requiring multiple single-threaded processes to achieve the same throughput, incurs additional inter-process communication and cluster bus serialization delays.
+Estimated 99th percentile ($p99$) latency is modeled using an empirical baseline plus queuing degradation factor:
+$$p99 = L_0 + \left(\frac{\rho}{1 - \rho}\right) \cdot \delta$$
+
+Where $L_0 = 0.35\text{ ms}$ represents unloaded base processing latency and $\delta = 0.12\text{ ms}$ is the calibrated queue scaling coefficient:
+$$p99 = 0.35\text{ ms} + \left(\frac{0.50}{1 - 0.50}\right) \cdot 0.12\text{ ms} = 0.47\text{ ms}$$
+
+#### Architectural Analysis
+At $50\%$ utilization, the multithreaded architecture remains in the linear performance region, maintaining minimal queue buildup within shared memory. Conversely, achieving equivalent throughput with a single-threaded architecture (such as standard Redis) requires running multiple independent instances in a cluster, introducing IPC serialization, cross-slot routing, and cluster bus synchronization overhead.
 
 ---
 
