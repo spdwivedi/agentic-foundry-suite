@@ -6,31 +6,34 @@ This document provides the definitive topological and architectural blueprint of
 
 ## 1. Global Architectural Overview
 
+### 1.1 Assignment 1: Tool-Using Research Agent (Cyclic Planning & Tool Execution)
 ```mermaid
-graph TB
-    subgraph "Assignment 1: Tool-Using Research Agent"
-        A1_Start([User Task]) --> A1_Plan[Dynamic Planner]
-        A1_Plan -->|TOOL_CALL & Counter < 6| A1_Tool[Tool Execution Node]
-        A1_Tool -->|Observation + Trace| A1_Plan
-        A1_Plan -->|SYNTHESIZE or Counter >= 6| A1_Synth[Synthesis Node]
-        A1_Synth --> A1_End([Final Recommendation])
-    end
+flowchart TD
+    A1_Start([User Task: Redis vs KeyDB]) --> A1_Plan[Dynamic Planner Node]
+    A1_Plan -->|decision == 'TOOL_CALL' & counter < 6| A1_Tool[Tool Execution Node]
+    A1_Tool -->|Append Observation & Trace| A1_Plan
+    A1_Plan -->|decision == 'SYNTHESIZE' or counter >= 6| A1_Synth[Synthesis Node]
+    A1_Synth --> A1_End([Final Architectural Recommendation])
+```
 
-    subgraph "Assignment 2: Multi-Agent Review Gate"
-        A2_Start([Task Prompt]) --> A2_Worker[Agent A: Worker Node]
-        A2_Worker -->|Middleware + Pytest Code| A2_Reviewer[Agent B: Reviewer Node]
-        A2_Reviewer -->|Pydantic ReviewVerdict + Telemetry| A2_End([Gate Verdict])
-    end
+### 1.2 Assignment 2: Multi-Agent Review Gate (Worker-Reviewer Pipeline)
+```mermaid
+flowchart TD
+    A2_Start([Task Prompt: FastAPI Rate Limiter]) --> A2_Worker[Agent A: Worker Node]
+    A2_Worker -->|Emits Middleware & Pytest Code| A2_Reviewer[Agent B: Reviewer Node]
+    A2_Reviewer -->|Pydantic ReviewVerdict & Telemetry| A2_End([Gate Verdict: APPROVED / REJECTED])
+```
 
-    subgraph "Assignment 3: Resumable Checkpoint Pipeline"
-        A3_Start([Microservice List]) --> A3_Step[Process Item Node]
-        A3_Step --> A3_DB[(SQLite Checkpointer)]
-        A3_Step --> A3_Router{Router Edge}
-        A3_Router -->|Current Index < Limit| A3_Step
-        A3_Router -->|Interrupt Triggered| A3_Int([Interrupted State])
-        A3_Router -->|All Complete| A3_Check[Self-Check Validation]
-        A3_Check --> A3_End([Verified Output])
-    end
+### 1.3 Assignment 3: Resumable Checkpoint Pipeline (Stateful Transaction Logging)
+```mermaid
+flowchart TD
+    A3_Start([Microservice Configurations: 4 Services]) --> A3_Step[Process Item Node]
+    A3_Step --> A3_DB[(SQLite State Store: agent_state.db)]
+    A3_Step --> A3_Router{Should Continue Router}
+    A3_Router -->|current_index < interrupt_limit & remaining items| A3_Step
+    A3_Router -->|interrupt_after limit reached| A3_Int([Interrupted State Saved to SQLite])
+    A3_Router -->|All 4 items completed| A3_Check[Self-Check Validation Node]
+    A3_Check --> A3_End([Verified Spec Output / Audit Failure])
 ```
 
 ---
@@ -86,7 +89,7 @@ flowchart TD
 Assignment 2 establishes a unidirectional producer-consumer audit pipeline with independent persona boundaries and strict evaluation gates.
 
 ```mermaid
-flowchart LR
+flowchart TD
     StartNode([__start__]) --> WorkerNode[worker_node: Agent A]
     WorkerNode -->|Worker Artifact Payload| ReviewerNode[reviewer_node: Agent B]
     ReviewerNode -->|Structured ReviewVerdict| EndNode([__end__])
@@ -135,17 +138,19 @@ flowchart TD
 
 ### 4.2 State Channel Invariants & Persistence
 - **Channel Schema**:
-  ```python
-  class CheckpointState(TypedDict):
-      items_to_process: List[str]
-      completed_items: Dict[str, Any]
-      current_index: int
-      validation_results: Dict[str, Any]
-      total_llm_calls: int
-      execution_log: List[str]
-      interrupt_after: Optional[int]
-      corrupt_item: Optional[int]
-  ```
+
+```python
+class CheckpointState(TypedDict):
+    items_to_process: List[str]
+    completed_items: Dict[str, Any]
+    current_index: int
+    validation_results: Dict[str, Any]
+    total_llm_calls: int
+    execution_log: List[str]
+    interrupt_after: Optional[int]
+    corrupt_item: Optional[int]
+```
+
 - **Checkpoint Engine**: `SqliteSaver` creates and manages table `checkpoints` and `checkpoint_blobs` inside `state_store/agent_state.db`.
 - **Resumption Semantics**:
   - `graph.get_state(config)` inspects completed microservice keys.

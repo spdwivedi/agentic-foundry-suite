@@ -138,8 +138,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
-    margin: 20px auto !important;
-    padding: 12px 0 !important;
+    margin: 14px auto !important;
+    padding: 8px 0 !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     overflow: visible !important;
@@ -147,21 +147,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .mermaid svg {
     width: auto !important;
     height: auto !important;
-    max-width: 580px !important;
-    max-height: 300px !important;
+    max-width: 520px !important;
+    max-height: 260px !important;
+    overflow: visible !important;
     filter: contrast(1.08);
-  }
-  /* Pie chart title positioning and styling */
-  .mermaid svg text.pieTitleText {
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    transform: translateY(18px) !important;
-    fill: #24292f !important;
-  }
-  /* Give sequence and pie charts sufficient breathing room */
-  .mermaid svg[id^="mermaid-"] {
-    padding-top: 14px !important;
-    padding-bottom: 8px !important;
   }
   hr {
     height: 1px;

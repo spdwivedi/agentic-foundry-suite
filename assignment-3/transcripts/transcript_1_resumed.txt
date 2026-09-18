@@ -57,6 +57,7 @@ FINAL EXTRACTED MICROSERVICE DATA:
       8082
     ],
     "rate_limits": {
+      "enabled": true,
       "requests_per_second": 100,
       "burst_capacity": 150,
       "algorithm": "leaky_bucket"
@@ -106,7 +107,7 @@ SELF-CHECK VALIDATION VERDICT:
     "event_stream.json": true
   },
   "flagged_errors": [],
-  "validation_summary": "All four microservice specifications passed the validation criteria: service names are present, compliance flags are populated, exposed ports are defined, and rate limit configurations are provided."
+  "validation_summary": "All four microservice specifications passed the validation criteria: each contains a valid service name, at least one compliance flag, at least one exposed port, and defined rate limit parameters."
 }
 --------------------------------------------------------------------------------
 END OF TRANSCRIPT

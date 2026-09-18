@@ -1,8 +1,12 @@
 # Agentic AI Engineering Take-Home Submission Document
 
-**Candidate**: Autonomous Lead AI Engineer  
-**Role**: Senior / Lead AI & Distributed Systems Engineer  
-**Repository**: [https://github.com/spdwivedi/agentic-foundry-suite](https://github.com/spdwivedi/agentic-foundry-suite)  
+**Candidate Name**: Surya Prakash Dwivedi  
+**Role**: Junior AI Engineer (Autonomous Agent Products)  
+**Email**: suryaprakashsep2001@gmail.com  
+**Phone**: +91 9169124559  
+**GitHub Profile**: [https://github.com/spdwivedi](https://github.com/spdwivedi)  
+**Primary Repository**: [https://github.com/spdwivedi/agentic-foundry-suite](https://github.com/spdwivedi/agentic-foundry-suite)  
+**Google Drive Mirror**: [https://drive.google.com/drive/folders/1fsD6fGxkANd9p5qgBXegWZejLKLqX2tx?usp=sharing](https://drive.google.com/drive/folders/1fsD6fGxkANd9p5qgBXegWZejLKLqX2tx?usp=sharing)  
 **Date**: September 18, 2026  
 **Primary Frameworks**: LangGraph, LangChain Google GenAI, Pydantic v2, SQLite  
 **Foundation Model**: Google Gemini 3.1 Flash Lite (`gemini-3.1-flash-lite`)  

@@ -6,3 +6,6 @@ __pycache__/
 *.db
 .venv/
 venv/
+gdrive_upload/
+scripts/__pycache__/
+project_audit_dump.txt

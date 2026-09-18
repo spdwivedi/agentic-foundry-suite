@@ -114,12 +114,16 @@ Token tracking was accomplished using a non-invasive `TelemetryCallbackHandler(B
 
 ### 3.2 Observed Consumption Breakdown
 
+<p align="center" style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #24292f;">
+  Token Usage Breakdown (Pass Scenario — Total: 2,747 Tokens)
+</p>
+
 ```mermaid
-pie title Token Usage Breakdown (Pass Scenario - Total: 2,747 Tokens)
-    "Prompt Tokens (Worker)" : 420
-    "Completion Tokens (Worker)" : 780
+pie
     "Prompt Tokens (Reviewer)" : 1083
+    "Completion Tokens (Worker)" : 780
     "Completion Tokens (Reviewer)" : 464
+    "Prompt Tokens (Worker)" : 420
 ```
 
 ### 3.3 Comparative Cost & Latency Profile

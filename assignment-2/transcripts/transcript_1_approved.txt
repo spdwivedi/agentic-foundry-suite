@@ -3,28 +3,33 @@ AGENTIC FOUNDRY SUITE: ASSIGNMENT 2 MULTI-AGENT REVIEW (PASS)
 ================================================================================
 Task: Design and review an asynchronous FastAPI Token-Bucket Rate Limiter middleware.
 Scenario Mode: pass
-Gate Verdict: APPROVED
+Gate Verdict: REJECTED
 --------------------------------------------------------------------------------
 TELEMETRY SUMMARY:
   Total LLM Calls:       2
-  Prompt Tokens:         1503
-  Completion Tokens:     1244
-  Total Tokens Consumed: 2747
+  Prompt Tokens:         1539
+  Completion Tokens:     1345
+  Total Tokens Consumed: 2884
 --------------------------------------------------------------------------------
 CRITERIA SCORECARD:
   - concurrency_safety                 : PASSED [OK]
   - edge_case_resilience               : PASSED [OK]
   - test_completeness                  : PASSED [OK]
-  - type_annotations_and_docstrings    : PASSED [OK]
+  - type_annotations_and_docstrings    : FAILED [X]
+--------------------------------------------------------------------------------
+ITEMIZED REJECTION REASONS:
+  1. Missing docstrings for TokenBucket class and its methods.
+  2. Missing docstrings for RateLimitMiddleware class and its methods.
+  3. Incomplete type annotations for the RateLimitMiddleware constructor parameters.
 --------------------------------------------------------------------------------
 REVIEW NOTES:
-The implementation correctly utilizes asyncio.Lock for per-bucket concurrency control, preventing race conditions. Edge cases regarding capacity and refill rates are handled via constructor validation, and time.monotonic() is correctly employed to mitigate clock drift. The provided test suite covers both successful consumption and rate-limit enforcement. Type annotations are present and accurate.
+The implementation is architecturally sound, utilizing asyncio.Lock correctly for concurrency and time.monotonic() for clock drift resilience. The test suite is sufficient and demonstrates correct behavior. However, the submission fails the documentation and type annotation requirements. Specifically, the code lacks docstrings entirely, and the middleware constructor lacks explicit type hints for the 'app' parameter, which is a violation of the strict type annotation requirement.
 --------------------------------------------------------------------------------
 AGENT A (WORKER) ARTIFACT SUBMISSION:
 --------------------------------------------------------------------------------
-To implement a production-grade Token Bucket rate limiter in FastAPI, we must ensure that the state (tokens and last refill time) is managed atomically. Using `asyncio.Lock` per key prevents race conditions during the "read-modify-write" cycle of token consumption.
+To implement a production-grade Token Bucket rate limiter in FastAPI, we must ensure that the state management is atomic and time-sensitive. Using `asyncio.Lock` per key prevents race conditions during the "read-modify-write" cycle of token consumption.
 
-### Implementation
+### Implementation: `rate_limiter.py`
 
 ```python
 import asyncio
@@ -37,13 +42,13 @@ class TokenBucket:
     def __init__(self, capacity: float, refill_rate: float):
         if capacity <= 0 or refill_rate <= 0:
             raise ValueError("Capacity and refill_rate must be positive.")
-        self.capacity = float(capacity)
-        self.refill_rate = float(refill_rate)
-        self.tokens = float(capacity)
+        self.capacity = capacity
+        self.refill_rate = refill_rate
+        self.tokens = capacity
         self.last_refill = time.monotonic()
         self.lock = asyncio.Lock()
 
-    async def consume(self, amount: float = 1.0) -> bool:
+    async def consume(self, tokens: float = 1.0) -> bool:
         async with self.lock:
             now = time.monotonic()
             elapsed = now - self.last_refill
@@ -52,8 +57,8 @@ class TokenBucket:
             self.tokens = min(self.capacity, self.tokens + elapsed * self.refill_rate)
             self.last_refill = now
 
-            if self.tokens >= amount:
-                self.tokens -= amount
+            if self.tokens >= tokens:
+                self.tokens -= tokens
                 return True
             return False
 
@@ -65,7 +70,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.refill_rate = refill_rate
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        # Use client IP as the unique key
+        # Identify client by IP
         client_ip = request.client.host if request.client else "unknown"
         
         if client_ip not in self.buckets:
@@ -81,51 +86,57 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 ```
 
-### Unit Tests
+### Unit Tests: `test_rate_limiter.py`
 
-These tests use `pytest` and `httpx` to verify the rate limiting logic.
+These tests use `httpx` to simulate concurrent requests and verify the bucket behavior.
 
 ```python
 import pytest
 from fastapi import FastAPI
-from httpx import ASGITransport, AsyncClient
-from .middleware import RateLimitMiddleware # Assuming the code above is in middleware.py
+from httpx import AsyncClient
+from rate_limiter import RateLimitMiddleware
 
 @pytest.fixture
 def app():
     app = FastAPI()
-    app.add_middleware(RateLimitMiddleware, capacity=2, refill_rate=100) # High refill for testing
+    app.add_middleware(RateLimitMiddleware, capacity=2, refill_rate=100)
     @app.get("/")
     async def root():
         return {"message": "ok"}
     return app
 
 @pytest.mark.asyncio
-async def test_rate_limit_success(app):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        # First two requests should pass
-        resp1 = await client.get("/")
-        resp2 = await client.get("/")
-        assert resp1.status_code == 200
-        assert resp2.status_code == 200
+async def test_rate_limiting_blocks_excessive_requests(app):
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Consume the 2 initial tokens
+        await ac.get("/")
+        await ac.get("/")
+        
+        # The 3rd request should be rate limited
+        response = await ac.get("/")
+        assert response.status_code == 429
 
 @pytest.mark.asyncio
-async def test_rate_limit_exceeded(app):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        # Exhaust capacity
-        await client.get("/")
-        await client.get("/")
+async def test_rate_limiting_replenishment(app):
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Exhaust
+        await ac.get("/")
+        await ac.get("/")
         
-        # Third request should fail
-        resp3 = await client.get("/")
-        assert resp3.status_code == 429
+        # Wait for refill (refill_rate is 100/sec, so 0.05s is enough for 5 tokens)
+        import asyncio
+        await asyncio.sleep(0.05)
+        
+        # Should be allowed again
+        response = await ac.get("/")
+        assert response.status_code == 200
 ```
 
 ### Key Engineering Decisions:
-1.  **`time.monotonic()`**: Used instead of `time.time()` to ensure the rate limiter is immune to system clock adjustments (NTP syncs), which is critical for distributed systems.
+1.  **`time.monotonic()`**: Used instead of `time.time()` to ensure the rate limiter is immune to system clock updates (NTP syncs), which is critical for distributed system stability.
 2.  **`asyncio.Lock`**: By placing the lock inside the `TokenBucket` instance, we ensure that concurrent requests from the *same* client are serialized, while requests from *different* clients remain non-blocking relative to each other.
-3.  **Memory Management**: In a production environment with millions of unique IPs, you should replace the `self.buckets` dictionary with an `LRUCache` or a Redis-backed implementation to prevent memory exhaustion.
-4.  **Granularity**: The `refill_rate` is calculated per second, providing a smooth token replenishment flow.
+3.  **Memory Management**: In a high-scale production environment, you would replace the `self.buckets` dictionary with an LRU cache or a Redis-backed implementation to prevent memory leaks from stale IP addresses.
+4.  **Guard Clauses**: The `TokenBucket` constructor enforces strict positive values, preventing division-by-zero or infinite token generation bugs.
 
 ================================================================================
 END OF TRANSCRIPT

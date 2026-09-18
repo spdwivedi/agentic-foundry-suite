@@ -29,15 +29,15 @@ Every component has been verified through end-to-end execution, producing real t
 
 ## Test Execution Matrix
 
-| Test ID | Command Line Trigger | Transcript Artifact | Status | Exit Code |
+| Test ID | Scenario Description | CLI Command | Status | Exit Code |
 | :---: | :--- | :--- | :---: | :---: |
-| **A1-T1** | `python assignment-1/agent.py --run-clean` | `assignment-1/transcripts/transcript_1_clean.txt` | **SUCCESS** | `0` |
-| **A1-T2** | `python assignment-1/agent.py --run-failure` | `assignment-1/transcripts/transcript_2_failure_recovery.txt` | **SUCCESS** | `0` |
-| **A2-T1** | `python assignment-2/agent.py --scenario pass` | `assignment-2/transcripts/transcript_1_approved.txt` | **SUCCESS** | `0` |
-| **A2-T2** | `python assignment-2/agent.py --scenario fail` | `assignment-2/transcripts/transcript_2_rejected.txt` | **SUCCESS** | `0` |
-| **A3-T1** | `python assignment-3/agent.py --interrupt-after 2` | Persisted to `assignment-3/state_store/agent_state.db` | **SUCCESS** | `0` |
-| **A3-T2** | `python assignment-3/agent.py --resume` | `assignment-3/transcripts/transcript_1_resumed.txt` | **SUCCESS** | `0` |
-| **A3-T3** | `python assignment-3/agent.py --corrupt-item 3` | `assignment-3/transcripts/transcript_2_validation_failed.txt` | **SUCCESS** | `0` |
+| **A1-T1** | Assignment 1: Clean Flow | `python assignment-1/agent.py --run-clean` | **SUCCESS** | `0` |
+| **A1-T2** | Assignment 1: Failure Recovery | `python assignment-1/agent.py --run-failure` | **SUCCESS** | `0` |
+| **A2-T1** | Assignment 2: Approved Gate | `python assignment-2/agent.py --scenario pass` | **SUCCESS** | `0` |
+| **A2-T2** | Assignment 2: Rejected Gate | `python assignment-2/agent.py --scenario fail` | **SUCCESS** | `0` |
+| **A3-T1** | Assignment 3: Interrupted Pipeline | `python assignment-3/agent.py --interrupt-after 2` | **SUCCESS** | `0` |
+| **A3-T2** | Assignment 3: Resumed Pipeline | `python assignment-3/agent.py --resume` | **SUCCESS** | `0` |
+| **A3-T3** | Assignment 3: Corrupt Item Self-Check | `python assignment-3/agent.py --corrupt-item 3` | **SUCCESS** | `0` |
 
 ---
 

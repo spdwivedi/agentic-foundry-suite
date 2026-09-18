@@ -55,7 +55,6 @@ FINAL EXTRACTED MICROSERVICE DATA:
       8082
     ],
     "rate_limits": {
-      "enabled": true,
       "requests_per_second": 100,
       "burst_capacity": 150,
       "algorithm": "leaky_bucket"
@@ -100,7 +99,7 @@ SELF-CHECK VALIDATION VERDICT:
     "gateway_service.json: exposed_ports is empty",
     "gateway_service.json: rate_limits is empty"
   ],
-  "validation_summary": "The audit identified critical failures in gateway_service.json, which lacks a service name, compliance flags, exposed ports, and rate limit configuration. All other services passed validation."
+  "validation_summary": "The audit identified critical failures in gateway_service.json, which lacks required service metadata, compliance flags, network configuration, and rate limiting parameters."
 }
 --------------------------------------------------------------------------------
 END OF TRANSCRIPT

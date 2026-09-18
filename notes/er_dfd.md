@@ -10,53 +10,52 @@ This document presents the **Data Flow Diagrams (DFD Level 0 and Level 1)** and 
 
 ```mermaid
 flowchart TD
-    User([System Operator / Engineer])
-    Suite[[Agentic Foundry Suite]]
-    TelemetryStore[(SQLite Checkpointer: agent_state.db)]
-    TranscriptFiles[/Formatted Transcript Files/]
-    ExternalAPIs[(Gemini Model API & Tool APIs)]
-
-    User -->|CLI Commands & Configuration Flags| Suite
-    Suite -->|State Checkpoints & Thread Locks| TelemetryStore
-    TelemetryStore -->|Restored State Snapshots| Suite
-    Suite -->|Prompts, Schemas, & Tool Requests| ExternalAPIs
-    ExternalAPIs -->|Responses, Telemetry, & Metric Data| Suite
-    Suite -->|Audit Trails & Execution Transcripts| TranscriptFiles
-    TranscriptFiles -->|Inspection & Verification| User
+    User([System Operator / Engineer]) -->|CLI Commands & Flags| Core[[Agentic Foundry Suite]]
+    Core -->|State Checkpoints| DB[(SQLite Store: agent_state.db)]
+    DB -->|Restored State Snapshots| Core
+    Core -->|Prompts & Schema Requests| Models[(Gemini API & External Tools)]
+    Models -->|Responses & Telemetry| Core
+    Core -->|Formatted Logs| Out[/Execution Transcripts & Reports/]
+    Out -->|Inspection & Audit| User
 ```
 
 ---
 
 ### 1.2 DFD Level 1: Subsystem Level
 
+### 1.2.1 Subsystem 1: Assignment 1 (Research Agent)
 ```mermaid
-flowchart TB
-    subgraph S1["Subsystem 1: Assignment 1 (Research Agent)"]
-        A1_Input[/Task String + Mock Flag/] --> A1_P1[Process 1.1: Dynamic Planning]
-        A1_P1 -->|Action Proposal| A1_P2[Process 1.2: Tool Execution]
-        A1_P2 -->|Observation Data| A1_DS1[(Reasoning Trace)]
-        A1_DS1 -->|History Feed| A1_P1
-        A1_P1 -->|Synthesis Trigger| A1_P3[Process 1.3: Architectural Synthesis]
-        A1_P3 --> A1_Out[/Transcript 1 & 2/]
-    end
+flowchart TD
+    A1_Input[/Task String + Mock Flag/] --> A1_P1[Process 1.1: Dynamic Planning]
+    A1_P1 -->|Action Proposal| A1_P2[Process 1.2: Tool Execution]
+    A1_P2 -->|Observation Data| A1_DS1[(Reasoning Trace)]
+    A1_DS1 -->|History Feed| A1_P1
+    A1_P1 -->|Synthesis Trigger| A1_P3[Process 1.3: Architectural Synthesis]
+    A1_P3 --> A1_Out[/Transcript 1 & 2/]
+```
 
-    subgraph S2["Subsystem 2: Assignment 2 (Review Gate)"]
-        A2_Input[/Scenario Flag: pass / fail/] --> A2_P1[Process 2.1: Worker Code Generation]
-        A2_P1 -->|Code Artifact + Test Cases| A2_P2[Process 2.2: Review Gatekeeper]
-        A2_P1 & A2_P2 -.->|Invocations & Tokens| A2_DS1[(Telemetry Tracker)]
-        A2_P2 -->|ReviewVerdict Model| A2_Out[/Transcript 1 & 2/]
-    end
+### 1.2.2 Subsystem 2: Assignment 2 (Review Gate)
+```mermaid
+flowchart TD
+    A2_Input[/Scenario Flag: pass / fail/] --> A2_P1[Process 2.1: Worker Code Generation]
+    A2_P1 -->|Code Artifact + Test Cases| A2_P2[Process 2.2: Review Gatekeeper]
+    A2_P1 & A2_P2 -.->|Invocations & Tokens| A2_DS1[(Telemetry Tracker)]
+    A2_P2 -->|ReviewVerdict Model| A2_Out[/Transcript 1 & 2/]
+```
 
-    subgraph S3["Subsystem 3: Assignment 3 (Resumable Checkpointer)"]
-        A3_Input[/Config Files + CLI Flags/] --> A3_P1[Process 3.1: Sequential Extraction]
-        A3_P1 -->|Thread State Commit| A3_DS1[(SQLite Store: agent_state.db)]
-        A3_DS1 -->|State Snapshot Query| A3_P1
-        A3_P1 -->|Completed Extractions| A3_P2[Process 3.2: Self-Check Validator]
-        A3_P2 --> A3_Out[/Transcript 1 & 2/]
-    end
+### 1.2.3 Subsystem 3: Assignment 3 (Resumable Checkpointer)
+```mermaid
+flowchart TD
+    A3_Input[/Config Files + CLI Flags/] --> A3_P1[Process 3.1: Sequential Extraction]
+    A3_P1 -->|Thread State Commit| A3_DS1[(SQLite Store: agent_state.db)]
+    A3_DS1 -->|State Snapshot Query| A3_P1
+    A3_P1 -->|Completed Extractions| A3_P2[Process 3.2: Self-Check Validator]
+    A3_P2 --> A3_Out[/Transcript 1 & 2/]
 ```
 
 ---
+
+<div style="page-break-before: always;"></div>
 
 ## 2. Entity Relationship (ER) Schemas
 
